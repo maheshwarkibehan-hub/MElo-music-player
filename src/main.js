@@ -10,6 +10,7 @@ import { renderNowPlaying } from './pages/nowplaying.js';
 import { renderOnboarding } from './pages/onboarding.js';
 import { renderArtistProfile } from './pages/artist.js';
 import { renderPodcastProfile } from './pages/podcast.js';
+import { renderSettings } from './pages/settings.js';
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -45,18 +46,21 @@ async function initNative() {
         await CapacitorUpdater.notifyAppReady();
 
         // Self-hosted OTA: Check version.json, download zip, prompt user
-        const CURRENT_VERSION = '1.0.5';
-        const VERSION_URL = 'https://raw.githubusercontent.com/maheshwarkibehan-hub/MElo-music-player/main/version.json';
+        const CURRENT_VERSION = '1.0.10';
+        const VERSION_URL = 'https://api.github.com/repos/maheshwarkibehan-hub/MElo-music-player/contents/version.json';
 
         window.setTimeout(async () => {
             try {
                 console.log('[OTA] Checking for updates...');
 
-                // Try fetching version info
+                // Try fetching version info via GitHub API (never cached unlike raw CDN)
                 let versionData;
                 try {
-                    const resp = await fetch(VERSION_URL, { cache: 'no-store' });
-                    if (!resp.ok) throw new Error('Version check failed');
+                    const resp = await fetch(VERSION_URL + '?t=' + Date.now(), {
+                        headers: { 'Accept': 'application/vnd.github.v3.raw' },
+                        cache: 'no-store'
+                    });
+                    if (!resp.ok) throw new Error('Version check failed: ' + resp.status);
                     versionData = await resp.json();
                 } catch (fetchErr) {
                     console.log('[OTA] Version check unavailable:', fetchErr.message);
@@ -116,9 +120,13 @@ async function initNative() {
                     btn.textContent = 'Installing...';
                     try {
                         await CapacitorUpdater.set(bundle);
+                        // Must manually reload when autoUpdate is off
+                        window.location.reload();
                     } catch (e) {
                         console.warn('[OTA] Set failed:', e);
-                        modal.remove();
+                        btn.textContent = 'Retry';
+                        btn.style.background = '#e53935';
+                        btn.style.color = '#fff';
                     }
                 };
 
@@ -194,6 +202,7 @@ function initApp() {
     router.register('nowplaying', renderNowPlaying);
     router.register('artist', renderArtistProfile);
     router.register('podcast', renderPodcastProfile);
+    router.register('settings', renderSettings);
 
     router.init(content);
 

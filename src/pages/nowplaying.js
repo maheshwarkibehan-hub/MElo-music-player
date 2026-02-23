@@ -221,8 +221,7 @@ export function renderNowPlaying() {
     const duration = player.currentTrack ? player.currentTrack.duration : parseInt(player.audio.duration || 0);
     if (!duration) return;
 
-    // Add 0.1 to force fractional mapping in Native Capacitor JSON bridging to avoid INT-to-LONG casting crash
-    const targetTime = (duration * seekPct) + 0.1;
+    const targetTime = Math.floor(duration * seekPct);
     player.seek(targetTime);
   }
 

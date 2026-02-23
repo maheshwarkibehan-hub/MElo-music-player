@@ -34,8 +34,7 @@ export function renderHome() {
 
   page.innerHTML = `
     <div class="home-header">
-      <img src="/icons/icon.svg" class="home-logo" alt="Melo" />
-      <h1 class="text-greeting">${greeting} <span style="font-size: 14px; color: var(--accent); vertical-align: middle; margin-left: 10px;">v1.0.6</span></h1>
+      <h1 class="text-greeting">${greeting} <span style="font-size: 14px; color: var(--accent); vertical-align: middle; margin-left: 10px;">v1.0.10</span></h1>
     </div>
     <div class="section" style="margin-top: var(--space-xl);">
       <div class="horizontal-scroll" id="home-chips"></div>
