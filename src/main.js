@@ -49,92 +49,102 @@ async function initNative() {
         const CURRENT_VERSION = '1.0.10';
         const VERSION_URL = 'https://api.github.com/repos/maheshwarkibehan-hub/MElo-music-player/contents/version.json';
 
-        window.setTimeout(async () => {
-            try {
-                console.log('[OTA] Checking for updates...');
-
-                // Try fetching version info via GitHub API (never cached unlike raw CDN)
-                let versionData;
-                try {
-                    const resp = await fetch(VERSION_URL + '?t=' + Date.now(), {
-                        headers: { 'Accept': 'application/vnd.github.v3.raw' },
-                        cache: 'no-store'
-                    });
-                    if (!resp.ok) throw new Error('Version check failed: ' + resp.status);
-                    versionData = await resp.json();
-                } catch (fetchErr) {
-                    console.log('[OTA] Version check unavailable:', fetchErr.message);
-                    return;
-                }
-
-                if (!versionData || !versionData.version || !versionData.url) {
-                    console.log('[OTA] Invalid version data');
-                    return;
-                }
-
-                if (versionData.version === CURRENT_VERSION) {
-                    console.log('[OTA] Already up to date:', CURRENT_VERSION);
-                    return;
-                }
-
-                console.log('[OTA] New version available:', versionData.version);
-
-                // Download the bundle
-                const bundle = await CapacitorUpdater.download({
-                    url: versionData.url,
-                    version: versionData.version,
-                });
-
-                console.log('[OTA] Bundle downloaded:', bundle);
-
-                // Show beautiful update modal
-                const modal = document.createElement('div');
-                modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:999999;opacity:0;transition:opacity 0.3s ease;padding:20px;';
-                modal.innerHTML = `
-                    <div style="background:var(--surface,#1a1a2e);padding:30px;border-radius:20px;text-align:center;max-width:320px;width:100%;box-shadow:0 20px 40px rgba(0,0,0,0.5);transform:translateY(20px);transition:transform 0.3s cubic-bezier(0.16,1,0.3,1);">
-                        <div style="background:var(--accent,#6c63ff);width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
-                            <span class="material-symbols-rounded" style="color:black;font-size:30px;">system_update</span>
-                        </div>
-                        <h2 style="margin:0 0 10px;font-size:22px;color:var(--text-primary,#fff);font-weight:700;">Update Ready</h2>
-                        <p style="margin:0 0 6px;color:var(--text-secondary,#aaa);font-size:13px;">v${CURRENT_VERSION} → v${versionData.version}</p>
-                        <p style="margin:0 0 25px;color:var(--text-secondary,#aaa);line-height:1.5;font-size:15px;">A new version of Melo is ready!</p>
-                        <div style="display:flex;gap:12px;">
-                            <button id="ota-skip" style="flex:1;padding:14px;border-radius:12px;border:none;background:rgba(255,255,255,0.05);color:var(--text-primary,#fff);font-weight:600;font-size:15px;cursor:pointer;">Later</button>
-                            <button id="ota-update" style="flex:1;padding:14px;border-radius:12px;border:none;background:var(--accent,#6c63ff);color:black;font-weight:600;font-size:15px;cursor:pointer;">Update Now</button>
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(modal);
-                requestAnimationFrame(() => {
-                    modal.style.opacity = '1';
-                    modal.firstElementChild.style.transform = 'translateY(0)';
-                });
-
-                document.getElementById('ota-skip').onclick = () => {
-                    modal.style.opacity = '0';
-                    setTimeout(() => modal.remove(), 300);
-                };
-
-                document.getElementById('ota-update').onclick = async () => {
-                    const btn = document.getElementById('ota-update');
-                    btn.textContent = 'Installing...';
-                    try {
-                        await CapacitorUpdater.set(bundle);
-                        // Bundle is set — app must fully restart to use it
-                        btn.textContent = 'Restarting...';
-                        setTimeout(() => App.exitApp(), 500);
-                    } catch (e) {
-                        console.warn('[OTA] Set failed:', e);
-                        btn.textContent = 'Retry';
-                        btn.style.background = '#e53935';
-                        btn.style.color = '#fff';
-                    }
-                };
-
-            } catch (err) {
-                console.log('[OTA] Update check error:', err);
+        // Simple version comparison: returns true if a > b
+        function isNewer(a, b) {
+            const pa = a.split('.').map(Number);
+            const pb = b.split('.').map(Number);
+            for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+                const na = pa[i] || 0;
+                const nb = pb[i] || 0;
+                if (na > nb) return true;
+                if (na < nb) return false;
             }
-        }, 3000);
+            return false;
+        }
+
+        // Only check once per session
+        if (!window.__otaChecked) {
+            window.__otaChecked = true;
+            window.setTimeout(async () => {
+                try {
+                    console.log('[OTA] Checking for updates...');
+
+                    let versionData;
+                    try {
+                        const resp = await fetch(VERSION_URL + '?t=' + Date.now(), {
+                            headers: { 'Accept': 'application/vnd.github.v3.raw' },
+                            cache: 'no-store'
+                        });
+                        if (!resp.ok) throw new Error('Version check failed: ' + resp.status);
+                        versionData = await resp.json();
+                    } catch (fetchErr) {
+                        console.log('[OTA] Version check unavailable:', fetchErr.message);
+                        return;
+                    }
+
+                    if (!versionData || !versionData.version || !versionData.url) {
+                        console.log('[OTA] Invalid version data');
+                        return;
+                    }
+
+                    if (!isNewer(versionData.version, CURRENT_VERSION)) {
+                        console.log('[OTA] Already up to date:', CURRENT_VERSION);
+                        return;
+                    }
+
+                    console.log('[OTA] New version available:', versionData.version);
+                    const bundle = await CapacitorUpdater.download({
+                        url: versionData.url,
+                        version: versionData.version,
+                    });
+                    console.log('[OTA] Bundle downloaded:', bundle);
+
+                    // Show update modal
+                    const modal = document.createElement('div');
+                    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:999999;opacity:0;transition:opacity 0.3s ease;padding:20px;';
+                    modal.innerHTML = `
+                      <div style="background:#1a1a2e;border-radius:20px;padding:28px;max-width:340px;width:100%;text-align:center;transform:translateY(20px);transition:transform 0.3s ease;border:1px solid rgba(255,255,255,0.08);">
+                        <span class="material-symbols-rounded" style="font-size:48px;color:#bb86fc;margin-bottom:12px;display:block;">system_update</span>
+                        <h2 style="color:#fff;margin:0 0 8px;font-size:20px;">Update Ready</h2>
+                        <p style="color:rgba(255,255,255,0.6);margin:0 0 24px;font-size:14px;">v${CURRENT_VERSION} → v${versionData.version}</p>
+                        <p style="color:rgba(255,255,255,0.4);margin:0 0 20px;font-size:12px;">The app will close briefly to apply the update</p>
+                        <div style="display:flex;gap:12px;">
+                          <button id="ota-skip" style="flex:1;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.6);font-weight:600;font-size:15px;cursor:pointer;">Skip</button>
+                          <button id="ota-update" style="flex:2;padding:14px;border-radius:12px;border:none;background:#bb86fc;color:#1a1a2e;font-weight:700;font-size:15px;cursor:pointer;">Update Now</button>
+                        </div>
+                      </div>`;
+                    document.body.appendChild(modal);
+                    requestAnimationFrame(() => {
+                        modal.style.opacity = '1';
+                        modal.firstElementChild.style.transform = 'translateY(0)';
+                    });
+
+                    document.getElementById('ota-skip').onclick = () => {
+                        modal.style.opacity = '0';
+                        setTimeout(() => modal.remove(), 300);
+                    };
+
+                    document.getElementById('ota-update').onclick = async () => {
+                        const btn = document.getElementById('ota-update');
+                        btn.textContent = 'Installing...';
+                        try {
+                            await CapacitorUpdater.set(bundle);
+                            btn.textContent = 'Restarting...';
+                            // App must fully restart for new bundle to load
+                            setTimeout(() => App.exitApp(), 500);
+                        } catch (e) {
+                            console.warn('[OTA] Set failed:', e);
+                            btn.textContent = 'Retry';
+                            btn.style.background = '#e53935';
+                            btn.style.color = '#fff';
+                        }
+                    };
+
+                } catch (err) {
+                    console.log('[OTA] Update check error:', err);
+                }
+            }, 3000);
+        }
 
     } catch (e) {
         console.warn('Native APIs not available:', e);
