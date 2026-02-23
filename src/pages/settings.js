@@ -107,7 +107,20 @@ async function checkForUpdate(page) {
 
     latestEl.textContent = data.version || '--';
 
-    if (data.version === CURRENT_VERSION) {
+    // Only show update if remote version is strictly newer
+    function isNewer(a, b) {
+      const pa = a.split('.').map(Number);
+      const pb = b.split('.').map(Number);
+      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const na = pa[i] || 0;
+        const nb = pb[i] || 0;
+        if (na > nb) return true;
+        if (na < nb) return false;
+      }
+      return false;
+    }
+
+    if (!isNewer(data.version, CURRENT_VERSION)) {
       statusEl.textContent = 'Up to date';
       statusEl.style.color = '#4caf50';
       updateArea.innerHTML = '';
@@ -120,7 +133,7 @@ async function checkForUpdate(page) {
           <span class="material-symbols-rounded">download</span>
           <span>Update to v${data.version}</span>
         </button>
-        <p class="settings-hint" id="settings-progress">Tap to download and install</p>
+        <p class="settings-hint" id="settings-progress">The app will close briefly to apply the update</p>
       `;
       page.querySelector('#settings-do-update').addEventListener('click', () => {
         doUpdate(page, data);
