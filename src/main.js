@@ -120,8 +120,9 @@ async function initNative() {
                     btn.textContent = 'Installing...';
                     try {
                         await CapacitorUpdater.set(bundle);
-                        // Must manually reload when autoUpdate is off
-                        window.location.reload();
+                        // Bundle is set — app must fully restart to use it
+                        btn.textContent = 'Restarting...';
+                        setTimeout(() => App.exitApp(), 500);
                     } catch (e) {
                         console.warn('[OTA] Set failed:', e);
                         btn.textContent = 'Retry';

@@ -1,13 +1,14 @@
 import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { App } from '@capacitor/app';
 
 const CURRENT_VERSION = '1.0.10';
 const VERSION_URL = 'https://api.github.com/repos/maheshwarkibehan-hub/MElo-music-player/contents/version.json';
 
 export function renderSettings() {
-    const page = document.createElement('div');
-    page.className = 'page settings-page';
+  const page = document.createElement('div');
+  page.className = 'page settings-page';
 
-    page.innerHTML = `
+  page.innerHTML = `
     <div class="settings-header">
       <h1 class="settings-title">Settings</h1>
     </div>
@@ -74,46 +75,46 @@ export function renderSettings() {
     </div>
   `;
 
-    // Check for updates on load
-    setTimeout(() => checkForUpdate(page), 500);
+  // Check for updates on load
+  setTimeout(() => checkForUpdate(page), 500);
 
-    // Manual check button
-    page.querySelector('#settings-check-update').addEventListener('click', () => {
-        checkForUpdate(page);
-    });
+  // Manual check button
+  page.querySelector('#settings-check-update').addEventListener('click', () => {
+    checkForUpdate(page);
+  });
 
-    return page;
+  return page;
 }
 
 async function checkForUpdate(page) {
-    const statusEl = page.querySelector('#settings-status');
-    const latestEl = page.querySelector('#settings-latest');
-    const updateArea = page.querySelector('#settings-update-area');
-    const checkBtn = page.querySelector('#settings-check-update');
+  const statusEl = page.querySelector('#settings-status');
+  const latestEl = page.querySelector('#settings-latest');
+  const updateArea = page.querySelector('#settings-update-area');
+  const checkBtn = page.querySelector('#settings-check-update');
 
-    checkBtn.disabled = true;
-    checkBtn.querySelector('span:last-child').textContent = 'Checking...';
-    statusEl.textContent = 'Checking...';
-    statusEl.style.color = 'var(--text-secondary)';
+  checkBtn.disabled = true;
+  checkBtn.querySelector('span:last-child').textContent = 'Checking...';
+  statusEl.textContent = 'Checking...';
+  statusEl.style.color = 'var(--text-secondary)';
 
-    try {
-        const resp = await fetch(VERSION_URL + '?t=' + Date.now(), {
-            headers: { 'Accept': 'application/vnd.github.v3.raw' },
-            cache: 'no-store'
-        });
-        if (!resp.ok) throw new Error('Failed: ' + resp.status);
-        const data = await resp.json();
+  try {
+    const resp = await fetch(VERSION_URL + '?t=' + Date.now(), {
+      headers: { 'Accept': 'application/vnd.github.v3.raw' },
+      cache: 'no-store'
+    });
+    if (!resp.ok) throw new Error('Failed: ' + resp.status);
+    const data = await resp.json();
 
-        latestEl.textContent = data.version || '--';
+    latestEl.textContent = data.version || '--';
 
-        if (data.version === CURRENT_VERSION) {
-            statusEl.textContent = 'Up to date';
-            statusEl.style.color = '#4caf50';
-            updateArea.innerHTML = '';
-        } else {
-            statusEl.textContent = 'Update available!';
-            statusEl.style.color = '#ff9800';
-            updateArea.innerHTML = `
+    if (data.version === CURRENT_VERSION) {
+      statusEl.textContent = 'Up to date';
+      statusEl.style.color = '#4caf50';
+      updateArea.innerHTML = '';
+    } else {
+      statusEl.textContent = 'Update available!';
+      statusEl.style.color = '#ff9800';
+      updateArea.innerHTML = `
         <div class="settings-divider"></div>
         <button class="settings-btn settings-btn-accent" id="settings-do-update">
           <span class="material-symbols-rounded">download</span>
@@ -121,45 +122,46 @@ async function checkForUpdate(page) {
         </button>
         <p class="settings-hint" id="settings-progress">Tap to download and install</p>
       `;
-            page.querySelector('#settings-do-update').addEventListener('click', () => {
-                doUpdate(page, data);
-            });
-        }
-    } catch (e) {
-        statusEl.textContent = 'Check failed';
-        statusEl.style.color = '#e53935';
-        latestEl.textContent = '--';
+      page.querySelector('#settings-do-update').addEventListener('click', () => {
+        doUpdate(page, data);
+      });
     }
+  } catch (e) {
+    statusEl.textContent = 'Check failed';
+    statusEl.style.color = '#e53935';
+    latestEl.textContent = '--';
+  }
 
-    checkBtn.disabled = false;
-    checkBtn.querySelector('span:last-child').textContent = 'Check for Updates';
+  checkBtn.disabled = false;
+  checkBtn.querySelector('span:last-child').textContent = 'Check for Updates';
 }
 
 async function doUpdate(page, data) {
-    const btn = page.querySelector('#settings-do-update');
-    const progress = page.querySelector('#settings-progress');
+  const btn = page.querySelector('#settings-do-update');
+  const progress = page.querySelector('#settings-progress');
 
-    btn.disabled = true;
-    btn.querySelector('span:last-child').textContent = 'Downloading...';
-    progress.textContent = 'Downloading update bundle...';
+  btn.disabled = true;
+  btn.querySelector('span:last-child').textContent = 'Downloading...';
+  progress.textContent = 'Downloading update bundle...';
 
-    try {
-        const bundle = await CapacitorUpdater.download({
-            url: data.url,
-            version: data.version,
-        });
+  try {
+    const bundle = await CapacitorUpdater.download({
+      url: data.url,
+      version: data.version,
+    });
 
-        progress.textContent = 'Installing...';
-        btn.querySelector('span:last-child').textContent = 'Installing...';
+    progress.textContent = 'Installing...';
+    btn.querySelector('span:last-child').textContent = 'Installing...';
 
-        await CapacitorUpdater.set(bundle);
-        window.location.reload();
-    } catch (e) {
-        progress.textContent = 'Update failed: ' + (e.message || e);
-        progress.style.color = '#e53935';
-        btn.disabled = false;
-        btn.querySelector('span:last-child').textContent = 'Retry Update';
-    }
+    await CapacitorUpdater.set(bundle);
+    btn.querySelector('span:last-child').textContent = 'Restarting...';
+    setTimeout(() => App.exitApp(), 500);
+  } catch (e) {
+    progress.textContent = 'Update failed: ' + (e.message || e);
+    progress.style.color = '#e53935';
+    btn.disabled = false;
+    btn.querySelector('span:last-child').textContent = 'Retry Update';
+  }
 }
 
 // Settings page CSS
