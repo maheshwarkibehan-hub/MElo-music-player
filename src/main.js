@@ -14,7 +14,7 @@ import { renderSettings } from './pages/settings.js';
 
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { StatusBar, Style } from '@capacitor/status-bar';
-
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { App } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
@@ -46,8 +46,8 @@ async function initNative() {
             });
         } catch (e) { }
 
-
-
+        // Tell Capgo the app booted OK — prevents rollback of OTA bundles
+        try { CapacitorUpdater.notifyAppReady(); } catch (e) { }
     } catch (e) {
         console.warn('Native APIs not available:', e);
     }
