@@ -14,7 +14,7 @@ import { renderSettings } from './pages/settings.js';
 
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { SplashScreen } from '@capacitor/splash-screen';
+
 import { App } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
@@ -46,85 +46,7 @@ async function initNative() {
             });
         } catch (e) { }
 
-        // Fire-and-forget: don't await notifyAppReady (it can hang with corrupt state)
-        CapacitorUpdater.notifyAppReady().catch(() => { });
 
-        // Self-hosted OTA: Check version.json, download zip, prompt user
-        const CURRENT_VERSION = '1.0.10';
-        const VERSION_URL = 'https://api.github.com/repos/maheshwarkibehan-hub/MElo-music-player/contents/version.json';
-
-        // Simple version comparison: returns true if a > b
-        function isNewer(a, b) {
-            const pa = a.split('.').map(Number);
-            const pb = b.split('.').map(Number);
-            for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-                const na = pa[i] || 0;
-                const nb = pb[i] || 0;
-                if (na > nb) return true;
-                if (na < nb) return false;
-            }
-            return false;
-        }
-
-        // Only check once per session
-        if (!window.__otaChecked) {
-            window.__otaChecked = true;
-            window.setTimeout(async () => {
-                try {
-                    console.log('[OTA] Checking for updates...');
-
-                    let versionData;
-                    try {
-                        const resp = await fetch(VERSION_URL + '?t=' + Date.now(), {
-                            headers: { 'Accept': 'application/vnd.github.v3.raw' },
-                            cache: 'no-store'
-                        });
-                        if (!resp.ok) throw new Error('Version check failed: ' + resp.status);
-                        versionData = await resp.json();
-                    } catch (fetchErr) {
-                        console.log('[OTA] Version check unavailable:', fetchErr.message);
-                        return;
-                    }
-
-                    if (!versionData || !versionData.version || !versionData.url) {
-                        console.log('[OTA] Invalid version data');
-                        return;
-                    }
-
-                    if (!isNewer(versionData.version, CURRENT_VERSION)) {
-                        console.log('[OTA] Already up to date:', CURRENT_VERSION);
-                        return;
-                    }
-
-                    console.log('[OTA] New version available:', versionData.version);
-
-                    // Show update notification
-                    const modal = document.createElement('div');
-                    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:999999;opacity:0;transition:opacity 0.3s ease;padding:20px;';
-                    modal.innerHTML = `
-                      <div style="background:#1a1a2e;border-radius:20px;padding:28px;max-width:340px;width:100%;text-align:center;transform:translateY(20px);transition:transform 0.3s ease;border:1px solid rgba(255,255,255,0.08);">
-                        <span class="material-symbols-rounded" style="font-size:48px;color:#bb86fc;margin-bottom:12px;display:block;">system_update</span>
-                        <h2 style="color:#fff;margin:0 0 8px;font-size:20px;">Update Available</h2>
-                        <p style="color:rgba(255,255,255,0.6);margin:0 0 24px;font-size:14px;">v${CURRENT_VERSION} → v${versionData.version}</p>
-                        <p style="color:rgba(255,255,255,0.4);margin:0 0 20px;font-size:12px;">Check Settings for details</p>
-                        <button id="ota-ok" style="width:100%;padding:14px;border-radius:12px;border:none;background:#bb86fc;color:#1a1a2e;font-weight:700;font-size:15px;cursor:pointer;">OK</button>
-                      </div>`;
-                    document.body.appendChild(modal);
-                    requestAnimationFrame(() => {
-                        modal.style.opacity = '1';
-                        modal.firstElementChild.style.transform = 'translateY(0)';
-                    });
-
-                    document.getElementById('ota-ok').onclick = () => {
-                        modal.style.opacity = '0';
-                        setTimeout(() => modal.remove(), 300);
-                    };
-
-                } catch (err) {
-                    console.log('[OTA] Update check error:', err);
-                }
-            }, 3000);
-        }
 
     } catch (e) {
         console.warn('Native APIs not available:', e);
@@ -220,14 +142,7 @@ window.addEventListener('unhandledrejection', (e) => {
     document.body.appendChild(d);
 });
 
-// Register service worker
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('SW registered:', reg.scope))
-            .catch(err => console.warn('SW registration failed:', err));
-    });
-}
+
 
 // Initialize
 try {

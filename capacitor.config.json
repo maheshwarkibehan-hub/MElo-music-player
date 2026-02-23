@@ -2,9 +2,5 @@
   "appId": "com.melo.music.player",
   "appName": "Melo",
   "webDir": "dist",
-  "plugins": {
-    "CapacitorHttp": {
-      "enabled": true
-    }
-  }
+  "plugins": {}
 }
