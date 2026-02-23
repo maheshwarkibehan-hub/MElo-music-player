@@ -22,28 +22,32 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 async function initNative() {
     try {
         // Transparent status bar for edge-to-edge look
-        await StatusBar.setOverlaysWebView({ overlay: true });
-        await StatusBar.setStyle({ style: Style.Dark });
+        try { await StatusBar.setOverlaysWebView({ overlay: true }); } catch (e) { }
+        try { await StatusBar.setStyle({ style: Style.Dark }); } catch (e) { }
 
         // Android 13+ requires notification permission for media controls
-        const status = await LocalNotifications.checkPermissions();
-        if (status.display !== 'granted') {
-            await LocalNotifications.requestPermissions();
-        }
+        try {
+            const status = await LocalNotifications.checkPermissions();
+            if (status.display !== 'granted') {
+                await LocalNotifications.requestPermissions();
+            }
+        } catch (e) { }
 
         // Create media channel for the native foreground service notification
-        await LocalNotifications.createChannel({
-            id: 'media_playback',
-            name: 'Music Controls',
-            description: 'Music playback controls',
-            importance: 5,
-            visibility: 1,
-            sound: null,
-            vibration: false
-        });
+        try {
+            await LocalNotifications.createChannel({
+                id: 'media_playback',
+                name: 'Music Controls',
+                description: 'Music playback controls',
+                importance: 5,
+                visibility: 1,
+                sound: null,
+                vibration: false
+            });
+        } catch (e) { }
 
-        // Notify Capgo OTA Updater that the app has successfully booted so it doesn't rollback
-        await CapacitorUpdater.notifyAppReady();
+        // Fire-and-forget: don't await notifyAppReady (it can hang with corrupt state)
+        CapacitorUpdater.notifyAppReady().catch(() => { });
 
         // Self-hosted OTA: Check version.json, download zip, prompt user
         const CURRENT_VERSION = '1.0.10';
