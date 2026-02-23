@@ -1,3 +1,6 @@
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
+import { App } from '@capacitor/app';
+
 const CURRENT_VERSION = '1.0.10';
 const VERSION_URL = 'https://api.github.com/repos/maheshwarkibehan-hub/MElo-music-player/contents/version.json';
 
@@ -37,7 +40,7 @@ export function renderSettings() {
           <span class="material-symbols-rounded" style="color: var(--accent);">cloud_done</span>
           <div class="settings-row-text">
             <span class="settings-label">Update Status</span>
-            <span class="settings-value" id="settings-status">Checking...</span>
+            <span class="settings-value" id="settings-status">Tap below to check</span>
           </div>
         </div>
         <div class="settings-divider"></div>
@@ -84,7 +87,7 @@ export function renderSettings() {
     </div>
   `;
 
-  setTimeout(() => checkForUpdate(page), 500);
+  // Manual check only — no auto check
   page.querySelector('#settings-check-update').addEventListener('click', () => checkForUpdate(page));
 
   return page;
@@ -112,7 +115,7 @@ async function checkForUpdate(page) {
     latestEl.textContent = data.version || '--';
 
     if (!isNewer(data.version, CURRENT_VERSION)) {
-      statusEl.textContent = 'Up to date';
+      statusEl.textContent = 'Up to date ✓';
       statusEl.style.color = '#4caf50';
       updateArea.innerHTML = '';
     } else {
@@ -120,8 +123,13 @@ async function checkForUpdate(page) {
       statusEl.style.color = '#ff9800';
       updateArea.innerHTML = `
         <div class="settings-divider"></div>
-        <p class="settings-hint" style="color:#ff9800;font-weight:600;">v${data.version} is available!</p>
+        <button class="settings-btn settings-btn-accent" id="settings-do-update">
+          <span class="material-symbols-rounded">download</span>
+          <span>Download & Install v${data.version}</span>
+        </button>
+        <p class="settings-hint" id="settings-progress">App will restart to apply</p>
       `;
+      page.querySelector('#settings-do-update').addEventListener('click', () => doUpdate(page, data));
     }
   } catch (e) {
     statusEl.textContent = 'Check failed';
@@ -131,6 +139,36 @@ async function checkForUpdate(page) {
 
   checkBtn.disabled = false;
   checkBtn.querySelector('span:last-child').textContent = 'Check for Updates';
+}
+
+async function doUpdate(page, data) {
+  const btn = page.querySelector('#settings-do-update');
+  const progress = page.querySelector('#settings-progress');
+
+  btn.disabled = true;
+  btn.querySelector('span:last-child').textContent = 'Downloading...';
+  progress.textContent = 'Downloading update...';
+  progress.style.color = 'var(--text-secondary)';
+
+  try {
+    const bundle = await CapacitorUpdater.download({
+      url: data.url,
+      version: data.version,
+    });
+
+    progress.textContent = 'Installing...';
+    btn.querySelector('span:last-child').textContent = 'Installing...';
+
+    await CapacitorUpdater.set(bundle);
+    btn.querySelector('span:last-child').textContent = 'Restarting...';
+    progress.textContent = 'Restarting app...';
+    setTimeout(() => App.exitApp(), 500);
+  } catch (e) {
+    progress.textContent = 'Failed: ' + (e.message || e);
+    progress.style.color = '#e53935';
+    btn.disabled = false;
+    btn.querySelector('span:last-child').textContent = 'Retry';
+  }
 }
 
 // Settings page CSS
@@ -151,6 +189,8 @@ settingsStyle.textContent = `
   .settings-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: calc(100% - 24px); margin: 10px 12px; padding: 14px; border-radius: 12px; border: none; background: rgba(255,255,255,0.05); color: var(--text-primary); font-weight: 600; font-size: 15px; cursor: pointer; font-family: var(--font-family); transition: all 0.2s ease; }
   .settings-btn:active { transform: scale(0.97); }
   .settings-btn:disabled { opacity: 0.5; pointer-events: none; }
-  .settings-hint { text-align: center; font-size: 13px; color: var(--text-secondary); margin: 8px 0 12px; padding: 0; }
+  .settings-btn-accent { background: var(--accent); color: black; }
+  .settings-btn-accent:active { filter: brightness(0.9); }
+  .settings-hint { text-align: center; font-size: 12px; color: var(--text-secondary); margin: 4px 0 10px; padding: 0; }
 `;
 document.head.appendChild(settingsStyle);

@@ -2,5 +2,9 @@
   "appId": "com.melo.music.player",
   "appName": "Melo",
   "webDir": "dist",
-  "plugins": {}
+  "plugins": {
+    "CapacitorUpdater": {
+      "autoUpdate": false
+    }
+  }
 }
