@@ -14,18 +14,15 @@ import { renderSettings } from './pages/settings.js';
 
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
 import { App } from '@capacitor/app';
 import { LocalNotifications } from '@capacitor/local-notifications';
 
 // Native Android Optimizations
 async function initNative() {
     try {
-        // Transparent status bar for edge-to-edge look
         try { await StatusBar.setOverlaysWebView({ overlay: true }); } catch (e) { }
         try { await StatusBar.setStyle({ style: Style.Dark }); } catch (e) { }
 
-        // Android 13+ requires notification permission for media controls
         try {
             const status = await LocalNotifications.checkPermissions();
             if (status.display !== 'granted') {
@@ -33,7 +30,6 @@ async function initNative() {
             }
         } catch (e) { }
 
-        // Create media channel for the native foreground service notification
         try {
             await LocalNotifications.createChannel({
                 id: 'media_playback',
@@ -45,9 +41,6 @@ async function initNative() {
                 vibration: false
             });
         } catch (e) { }
-
-        // Tell Capgo the app booted OK — prevents rollback of OTA bundles
-        try { CapacitorUpdater.notifyAppReady(); } catch (e) { }
     } catch (e) {
         console.warn('Native APIs not available:', e);
     }

@@ -1,20 +1,4 @@
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
-import { App } from '@capacitor/app';
-
-const CURRENT_VERSION = '1.0.10';
-const VERSION_URL = 'https://api.github.com/repos/maheshwarkibehan-hub/MElo-music-player/contents/version.json';
-
-function isNewer(a, b) {
-  const pa = a.split('.').map(Number);
-  const pb = b.split('.').map(Number);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const na = pa[i] || 0;
-    const nb = pb[i] || 0;
-    if (na > nb) return true;
-    if (na < nb) return false;
-  }
-  return false;
-}
+const CURRENT_VERSION = '1.1.0';
 
 export function renderSettings() {
   const page = document.createElement('div');
@@ -31,37 +15,10 @@ export function renderSettings() {
         <div class="settings-row">
           <span class="material-symbols-rounded" style="color: var(--accent);">info</span>
           <div class="settings-row-text">
-            <span class="settings-label">Current Version</span>
-            <span class="settings-value" id="settings-version">${CURRENT_VERSION}</span>
+            <span class="settings-label">Version</span>
+            <span class="settings-value">${CURRENT_VERSION}</span>
           </div>
         </div>
-        <div class="settings-divider"></div>
-        <div class="settings-row">
-          <span class="material-symbols-rounded" style="color: var(--accent);">cloud_done</span>
-          <div class="settings-row-text">
-            <span class="settings-label">Update Status</span>
-            <span class="settings-value" id="settings-status">Tap below to check</span>
-          </div>
-        </div>
-        <div class="settings-divider"></div>
-        <div class="settings-row">
-          <span class="material-symbols-rounded" style="color: var(--accent);">new_releases</span>
-          <div class="settings-row-text">
-            <span class="settings-label">Latest Version</span>
-            <span class="settings-value" id="settings-latest">--</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="settings-section">
-      <div class="settings-section-title">Updates</div>
-      <div class="settings-card">
-        <button class="settings-btn" id="settings-check-update">
-          <span class="material-symbols-rounded">system_update</span>
-          <span>Check for Updates</span>
-        </button>
-        <div id="settings-update-area"></div>
       </div>
     </div>
 
@@ -87,88 +44,7 @@ export function renderSettings() {
     </div>
   `;
 
-  // Manual check only — no auto check
-  page.querySelector('#settings-check-update').addEventListener('click', () => checkForUpdate(page));
-
   return page;
-}
-
-async function checkForUpdate(page) {
-  const statusEl = page.querySelector('#settings-status');
-  const latestEl = page.querySelector('#settings-latest');
-  const updateArea = page.querySelector('#settings-update-area');
-  const checkBtn = page.querySelector('#settings-check-update');
-
-  checkBtn.disabled = true;
-  checkBtn.querySelector('span:last-child').textContent = 'Checking...';
-  statusEl.textContent = 'Checking...';
-  statusEl.style.color = 'var(--text-secondary)';
-
-  try {
-    const resp = await fetch(VERSION_URL + '?t=' + Date.now(), {
-      headers: { 'Accept': 'application/vnd.github.v3.raw' },
-      cache: 'no-store'
-    });
-    if (!resp.ok) throw new Error('Failed: ' + resp.status);
-    const data = await resp.json();
-
-    latestEl.textContent = data.version || '--';
-
-    if (!isNewer(data.version, CURRENT_VERSION)) {
-      statusEl.textContent = 'Up to date ✓';
-      statusEl.style.color = '#4caf50';
-      updateArea.innerHTML = '';
-    } else {
-      statusEl.textContent = 'Update available!';
-      statusEl.style.color = '#ff9800';
-      updateArea.innerHTML = `
-        <div class="settings-divider"></div>
-        <button class="settings-btn settings-btn-accent" id="settings-do-update">
-          <span class="material-symbols-rounded">download</span>
-          <span>Download & Install v${data.version}</span>
-        </button>
-        <p class="settings-hint" id="settings-progress">App will restart to apply</p>
-      `;
-      page.querySelector('#settings-do-update').addEventListener('click', () => doUpdate(page, data));
-    }
-  } catch (e) {
-    statusEl.textContent = 'Check failed';
-    statusEl.style.color = '#e53935';
-    latestEl.textContent = '--';
-  }
-
-  checkBtn.disabled = false;
-  checkBtn.querySelector('span:last-child').textContent = 'Check for Updates';
-}
-
-async function doUpdate(page, data) {
-  const btn = page.querySelector('#settings-do-update');
-  const progress = page.querySelector('#settings-progress');
-
-  btn.disabled = true;
-  btn.querySelector('span:last-child').textContent = 'Downloading...';
-  progress.textContent = 'Downloading update...';
-  progress.style.color = 'var(--text-secondary)';
-
-  try {
-    const bundle = await CapacitorUpdater.download({
-      url: data.url,
-      version: data.version,
-    });
-
-    progress.textContent = 'Installing...';
-    btn.querySelector('span:last-child').textContent = 'Installing...';
-
-    await CapacitorUpdater.set(bundle);
-    btn.querySelector('span:last-child').textContent = 'Restarting...';
-    progress.textContent = 'Restarting app...';
-    setTimeout(() => App.exitApp(), 500);
-  } catch (e) {
-    progress.textContent = 'Failed: ' + (e.message || e);
-    progress.style.color = '#e53935';
-    btn.disabled = false;
-    btn.querySelector('span:last-child').textContent = 'Retry';
-  }
 }
 
 // Settings page CSS
@@ -186,11 +62,5 @@ settingsStyle.textContent = `
   .settings-label { font-size: 15px; font-weight: 500; color: var(--text-primary); }
   .settings-value { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
   .settings-divider { height: 1px; background: var(--surface-border); margin: 0 18px; }
-  .settings-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: calc(100% - 24px); margin: 10px 12px; padding: 14px; border-radius: 12px; border: none; background: rgba(255,255,255,0.05); color: var(--text-primary); font-weight: 600; font-size: 15px; cursor: pointer; font-family: var(--font-family); transition: all 0.2s ease; }
-  .settings-btn:active { transform: scale(0.97); }
-  .settings-btn:disabled { opacity: 0.5; pointer-events: none; }
-  .settings-btn-accent { background: var(--accent); color: black; }
-  .settings-btn-accent:active { filter: brightness(0.9); }
-  .settings-hint { text-align: center; font-size: 12px; color: var(--text-secondary); margin: 4px 0 10px; padding: 0; }
 `;
 document.head.appendChild(settingsStyle);

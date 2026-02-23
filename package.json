@@ -1,0 +1,28 @@
+{
+    "name": "melo-music-player",
+    "private": true,
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "concurrently \"node --openssl-legacy-provider server.js\" \"vite\"",
+        "server": "node --openssl-legacy-provider server.js",
+        "build": "vite build",
+        "preview": "vite preview",
+        "android": "npx cap open android"
+    },
+    "devDependencies": {
+        "concurrently": "^9.1.2",
+        "vite": "^6.0.0"
+    },
+    "dependencies": {
+        "@capacitor/android": "^8.1.0",
+        "@capacitor/app": "^8.0.1",
+        "@capacitor/cli": "^8.1.0",
+        "@capacitor/core": "^8.1.0",
+        "@capacitor/haptics": "^8.0.0",
+        "@capacitor/local-notifications": "^8.0.1",
+        "@capacitor/splash-screen": "^8.0.1",
+        "@capacitor/status-bar": "^8.0.1",
+        "crypto-js": "^4.2.0"
+    }
+}
