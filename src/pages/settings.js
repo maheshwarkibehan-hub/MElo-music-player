@@ -1,8 +1,17 @@
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
-import { App } from '@capacitor/app';
-
 const CURRENT_VERSION = '1.0.10';
 const VERSION_URL = 'https://api.github.com/repos/maheshwarkibehan-hub/MElo-music-player/contents/version.json';
+
+function isNewer(a, b) {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const na = pa[i] || 0;
+    const nb = pb[i] || 0;
+    if (na > nb) return true;
+    if (na < nb) return false;
+  }
+  return false;
+}
 
 export function renderSettings() {
   const page = document.createElement('div');
@@ -75,13 +84,8 @@ export function renderSettings() {
     </div>
   `;
 
-  // Check for updates on load
   setTimeout(() => checkForUpdate(page), 500);
-
-  // Manual check button
-  page.querySelector('#settings-check-update').addEventListener('click', () => {
-    checkForUpdate(page);
-  });
+  page.querySelector('#settings-check-update').addEventListener('click', () => checkForUpdate(page));
 
   return page;
 }
@@ -107,19 +111,6 @@ async function checkForUpdate(page) {
 
     latestEl.textContent = data.version || '--';
 
-    // Only show update if remote version is strictly newer
-    function isNewer(a, b) {
-      const pa = a.split('.').map(Number);
-      const pb = b.split('.').map(Number);
-      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-        const na = pa[i] || 0;
-        const nb = pb[i] || 0;
-        if (na > nb) return true;
-        if (na < nb) return false;
-      }
-      return false;
-    }
-
     if (!isNewer(data.version, CURRENT_VERSION)) {
       statusEl.textContent = 'Up to date';
       statusEl.style.color = '#4caf50';
@@ -129,15 +120,8 @@ async function checkForUpdate(page) {
       statusEl.style.color = '#ff9800';
       updateArea.innerHTML = `
         <div class="settings-divider"></div>
-        <button class="settings-btn settings-btn-accent" id="settings-do-update">
-          <span class="material-symbols-rounded">download</span>
-          <span>Update to v${data.version}</span>
-        </button>
-        <p class="settings-hint" id="settings-progress">The app will close briefly to apply the update</p>
+        <p class="settings-hint" style="color:#ff9800;font-weight:600;">v${data.version} is available!</p>
       `;
-      page.querySelector('#settings-do-update').addEventListener('click', () => {
-        doUpdate(page, data);
-      });
     }
   } catch (e) {
     statusEl.textContent = 'Check failed';
@@ -149,135 +133,24 @@ async function checkForUpdate(page) {
   checkBtn.querySelector('span:last-child').textContent = 'Check for Updates';
 }
 
-async function doUpdate(page, data) {
-  const btn = page.querySelector('#settings-do-update');
-  const progress = page.querySelector('#settings-progress');
-
-  btn.disabled = true;
-  btn.querySelector('span:last-child').textContent = 'Downloading...';
-  progress.textContent = 'Downloading update bundle...';
-
-  try {
-    const bundle = await CapacitorUpdater.download({
-      url: data.url,
-      version: data.version,
-    });
-
-    progress.textContent = 'Installing...';
-    btn.querySelector('span:last-child').textContent = 'Installing...';
-
-    await CapacitorUpdater.set(bundle);
-    btn.querySelector('span:last-child').textContent = 'Restarting...';
-    setTimeout(() => App.exitApp(), 500);
-  } catch (e) {
-    progress.textContent = 'Update failed: ' + (e.message || e);
-    progress.style.color = '#e53935';
-    btn.disabled = false;
-    btn.querySelector('span:last-child').textContent = 'Retry Update';
-  }
-}
-
 // Settings page CSS
 const settingsStyle = document.createElement('style');
 settingsStyle.textContent = `
-  .settings-page {
-    padding: 20px 16px 120px;
-  }
-  .settings-header {
-    padding: 20px 0 10px;
-  }
-  .settings-title {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-  .settings-section {
-    margin-bottom: 24px;
-  }
-  .settings-section-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 10px;
-    padding-left: 4px;
-  }
-  .settings-card {
-    background: var(--surface);
-    border-radius: 16px;
-    padding: 4px 0;
-    border: 1px solid var(--surface-border);
-  }
-  .settings-row {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 18px;
-  }
-  .settings-row .material-symbols-rounded {
-    font-size: 22px;
-    flex-shrink: 0;
-  }
-  .settings-row-text {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 0;
-  }
-  .settings-label {
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-  .settings-value {
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-top: 2px;
-  }
-  .settings-divider {
-    height: 1px;
-    background: var(--surface-border);
-    margin: 0 18px;
-  }
-  .settings-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    width: calc(100% - 24px);
-    margin: 10px 12px;
-    padding: 14px;
-    border-radius: 12px;
-    border: none;
-    background: rgba(255,255,255,0.05);
-    color: var(--text-primary);
-    font-weight: 600;
-    font-size: 15px;
-    cursor: pointer;
-    font-family: var(--font-family);
-    transition: all 0.2s ease;
-  }
-  .settings-btn:active {
-    transform: scale(0.97);
-  }
-  .settings-btn:disabled {
-    opacity: 0.5;
-    pointer-events: none;
-  }
-  .settings-btn-accent {
-    background: var(--accent);
-    color: black;
-  }
-  .settings-btn-accent:active {
-    filter: brightness(0.9);
-  }
-  .settings-hint {
-    text-align: center;
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin: 4px 0 10px;
-    padding: 0;
-  }
+  .settings-page { padding: 20px 16px 120px; }
+  .settings-header { padding: 20px 0 10px; }
+  .settings-title { font-size: 28px; font-weight: 700; color: var(--text-primary); }
+  .settings-section { margin-bottom: 24px; }
+  .settings-section-title { font-size: 13px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; padding-left: 4px; }
+  .settings-card { background: var(--surface); border-radius: 16px; padding: 4px 0; border: 1px solid var(--surface-border); }
+  .settings-row { display: flex; align-items: center; gap: 14px; padding: 14px 18px; }
+  .settings-row .material-symbols-rounded { font-size: 22px; flex-shrink: 0; }
+  .settings-row-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+  .settings-label { font-size: 15px; font-weight: 500; color: var(--text-primary); }
+  .settings-value { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+  .settings-divider { height: 1px; background: var(--surface-border); margin: 0 18px; }
+  .settings-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: calc(100% - 24px); margin: 10px 12px; padding: 14px; border-radius: 12px; border: none; background: rgba(255,255,255,0.05); color: var(--text-primary); font-weight: 600; font-size: 15px; cursor: pointer; font-family: var(--font-family); transition: all 0.2s ease; }
+  .settings-btn:active { transform: scale(0.97); }
+  .settings-btn:disabled { opacity: 0.5; pointer-events: none; }
+  .settings-hint { text-align: center; font-size: 13px; color: var(--text-secondary); margin: 8px 0 12px; padding: 0; }
 `;
 document.head.appendChild(settingsStyle);

@@ -11,7 +11,7 @@ import { renderOnboarding } from './pages/onboarding.js';
 import { renderArtistProfile } from './pages/artist.js';
 import { renderPodcastProfile } from './pages/podcast.js';
 import { renderSettings } from './pages/settings.js';
-import { CapacitorUpdater } from '@capgo/capacitor-updater';
+
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
@@ -97,25 +97,17 @@ async function initNative() {
                     }
 
                     console.log('[OTA] New version available:', versionData.version);
-                    const bundle = await CapacitorUpdater.download({
-                        url: versionData.url,
-                        version: versionData.version,
-                    });
-                    console.log('[OTA] Bundle downloaded:', bundle);
 
-                    // Show update modal
+                    // Show update notification
                     const modal = document.createElement('div');
                     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:999999;opacity:0;transition:opacity 0.3s ease;padding:20px;';
                     modal.innerHTML = `
                       <div style="background:#1a1a2e;border-radius:20px;padding:28px;max-width:340px;width:100%;text-align:center;transform:translateY(20px);transition:transform 0.3s ease;border:1px solid rgba(255,255,255,0.08);">
                         <span class="material-symbols-rounded" style="font-size:48px;color:#bb86fc;margin-bottom:12px;display:block;">system_update</span>
-                        <h2 style="color:#fff;margin:0 0 8px;font-size:20px;">Update Ready</h2>
+                        <h2 style="color:#fff;margin:0 0 8px;font-size:20px;">Update Available</h2>
                         <p style="color:rgba(255,255,255,0.6);margin:0 0 24px;font-size:14px;">v${CURRENT_VERSION} → v${versionData.version}</p>
-                        <p style="color:rgba(255,255,255,0.4);margin:0 0 20px;font-size:12px;">The app will close briefly to apply the update</p>
-                        <div style="display:flex;gap:12px;">
-                          <button id="ota-skip" style="flex:1;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:rgba(255,255,255,0.6);font-weight:600;font-size:15px;cursor:pointer;">Skip</button>
-                          <button id="ota-update" style="flex:2;padding:14px;border-radius:12px;border:none;background:#bb86fc;color:#1a1a2e;font-weight:700;font-size:15px;cursor:pointer;">Update Now</button>
-                        </div>
+                        <p style="color:rgba(255,255,255,0.4);margin:0 0 20px;font-size:12px;">Check Settings for details</p>
+                        <button id="ota-ok" style="width:100%;padding:14px;border-radius:12px;border:none;background:#bb86fc;color:#1a1a2e;font-weight:700;font-size:15px;cursor:pointer;">OK</button>
                       </div>`;
                     document.body.appendChild(modal);
                     requestAnimationFrame(() => {
@@ -123,25 +115,9 @@ async function initNative() {
                         modal.firstElementChild.style.transform = 'translateY(0)';
                     });
 
-                    document.getElementById('ota-skip').onclick = () => {
+                    document.getElementById('ota-ok').onclick = () => {
                         modal.style.opacity = '0';
                         setTimeout(() => modal.remove(), 300);
-                    };
-
-                    document.getElementById('ota-update').onclick = async () => {
-                        const btn = document.getElementById('ota-update');
-                        btn.textContent = 'Installing...';
-                        try {
-                            await CapacitorUpdater.set(bundle);
-                            btn.textContent = 'Restarting...';
-                            // App must fully restart for new bundle to load
-                            setTimeout(() => App.exitApp(), 500);
-                        } catch (e) {
-                            console.warn('[OTA] Set failed:', e);
-                            btn.textContent = 'Retry';
-                            btn.style.background = '#e53935';
-                            btn.style.color = '#fff';
-                        }
                     };
 
                 } catch (err) {
